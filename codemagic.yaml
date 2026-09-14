@@ -1,0 +1,43 @@
+workflows:
+  android-v2-fix3:
+    name: AlgebrAventura 2.0 FIX3 - sin Gradle Wrapper
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      java: 1.8
+    scripts:
+      - name: Confirmar configuración FIX3
+        script: |
+          echo "CONFIGURACION FIX3 ACTIVA"
+          echo "Branch: $CM_BRANCH"
+          echo "Commit: $CM_COMMIT"
+          java -version
+
+      - name: Configurar Android SDK
+        script: |
+          set -e
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          test -d "$ANDROID_SDK_ROOT/platforms/android-29"
+          test -d "$ANDROID_SDK_ROOT/build-tools/29.0.3"
+
+      - name: Instalar Gradle 6.1.1
+        script: |
+          set -e
+          mkdir -p "$CM_BUILD_DIR/.gradle-dist"
+          GRADLE_ZIP="$CM_BUILD_DIR/gradle-6.1.1-bin.zip"
+          curl -L --fail --retry 3 --retry-delay 2 \
+            -o "$GRADLE_ZIP" \
+            "https://services.gradle.org/distributions/gradle-6.1.1-bin.zip"
+          unzip -q -o "$GRADLE_ZIP" -d "$CM_BUILD_DIR/.gradle-dist"
+          "$CM_BUILD_DIR/.gradle-dist/gradle-6.1.1/bin/gradle" --version
+
+      - name: Compilar APK 2.0
+        script: |
+          set -e
+          "$CM_BUILD_DIR/.gradle-dist/gradle-6.1.1/bin/gradle" \
+            --no-daemon clean assembleDebug --stacktrace
+
+    artifacts:
+      - app/build/outputs/apk/debug/*.apk
+      - app/build/outputs/logs/*.txt
